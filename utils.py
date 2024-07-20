@@ -6,6 +6,7 @@ from scipy.spatial.distance import cosine
 from collections import Counter
 from scipy.optimize import linear_sum_assignment
 
+
 def iou(box1, box2):
     x1_max, y1_max, x2_max, y2_max = box1
     x1_min, y1_min, x2_min, y2_min = box2
@@ -15,13 +16,14 @@ def iou(box1, box2):
     xi2 = min(x2_max, x2_min)
     yi2 = min(y2_max, y2_min)
     inter_area = max(0, xi2 - xi1) * max(0, yi2 - yi1)
-    
+
     box1_area = (x2_max - x1_max) * (y2_max - y1_max)
     box2_area = (x2_min - x1_min) * (y2_min - y1_min)
     union_area = box1_area + box2_area - inter_area
-    
+
     iou = inter_area / union_area
     return iou
+
 
 def load_tracking_data(file_path):
     data = []
@@ -30,6 +32,7 @@ def load_tracking_data(file_path):
             parts = line.strip().split(',')
             data.append([float(p) if i != 7 else p for i, p in enumerate(parts)])
     return np.array(data, dtype=object)
+
 
 def load_reid_features(file_path):
     features = {}
@@ -49,6 +52,7 @@ def load_reid_features(file_path):
                         features[track_id].append((feature, class_id, confidence, bbox, ious))
     return features
 
+
 def separate_and_cluster_features(reid_features_dict, distance_threshold, confidence_threshold, iou_threshold):
     customer_features = []
     associate_features = []
@@ -59,10 +63,11 @@ def separate_and_cluster_features(reid_features_dict, distance_threshold, confid
     customer_ious = []
     associate_ious = []
     track_to_class = {}
-    
+
     for track_id, features in reid_features_dict.items():
         track_key = track_id
-        feature_list = [f[0] for f in features if isinstance(f[0], np.ndarray) and f[0].size > 0]  # Extract features only if they are valid numpy arrays
+        feature_list = [f[0] for f in features if isinstance(f[0], np.ndarray) and f[
+            0].size > 0]  # Extract features only if they are valid numpy arrays
         class_id = features[0][1]  # Class ID is the same for all entries in a track
         confidence_list = [f[2] for f in features]  # Extract confidence scores only
         bbox_list = [f[3] for f in features]  # Extract bounding boxes only
@@ -90,26 +95,28 @@ def separate_and_cluster_features(reid_features_dict, distance_threshold, confid
     if len(associate_features) > 0:
         associate_features = np.array(associate_features)
         associate_features = normalize(associate_features, axis=1)
-    
+
     # Filter features based on confidence score and overlap
     def filter_features(features, confidences, bboxes, ious, confidence_threshold, iou_threshold):
         valid_indices = [i for i in range(len(confidences)) if confidences[i] > confidence_threshold]
         filtered_features = np.array([features[i] for i in valid_indices])
         filtered_bboxes = np.array([bboxes[i] for i in valid_indices])
         filtered_ious = np.array([ious[i] for i in valid_indices])
-        
+
         non_overlapping_indices = []
         for i in range(len(filtered_features)):
             if np.all(filtered_ious[i] <= iou_threshold):
                 non_overlapping_indices.append(i)
-        
+
         filtered_features = filtered_features[non_overlapping_indices]
         filtered_bboxes = filtered_bboxes[non_overlapping_indices]
         return filtered_features, filtered_bboxes
 
-    customer_features, customer_bboxes = filter_features(customer_features, customer_confidences, customer_bboxes, customer_ious, confidence_threshold, iou_threshold)
-    associate_features, associate_bboxes = filter_features(associate_features, associate_confidences, associate_bboxes, associate_ious, confidence_threshold, iou_threshold)
-    
+    customer_features, customer_bboxes = filter_features(customer_features, customer_confidences, customer_bboxes,
+                                                         customer_ious, confidence_threshold, iou_threshold)
+    associate_features, associate_bboxes = filter_features(associate_features, associate_confidences, associate_bboxes,
+                                                           associate_ious, confidence_threshold, iou_threshold)
+
     # Clustering
     if len(customer_features) > 0:
         customer_clustering = AgglomerativeClustering(n_clusters=None, distance_threshold=distance_threshold)
@@ -127,10 +134,12 @@ def separate_and_cluster_features(reid_features_dict, distance_threshold, confid
 
     return customer_features, customer_labels, associate_features, associate_labels, track_to_class
 
-def map_track_id_to_global_id(reid_features_dict, customer_features, customer_labels, associate_features, associate_labels, track_to_class):
+
+def map_track_id_to_global_id(reid_features_dict, customer_features, customer_labels, associate_features,
+                              associate_labels, track_to_class):
     unique_tracks = list(reid_features_dict.keys())
     track_to_global_id = {}
-    
+
     global_customer_id_offset = 10000  # To ensure unique global IDs
     global_associate_id_offset = 20000
 
@@ -138,13 +147,15 @@ def map_track_id_to_global_id(reid_features_dict, customer_features, customer_la
         track_key = track
         if track_key in reid_features_dict:
             class_id = track_to_class[track_key]
-            track_features = np.array([f[0] for f in reid_features_dict[track_key] if isinstance(f[0], np.ndarray) and f[0].size > 0])  # Extract features only if they are valid numpy arrays
+            track_features = np.array([f[0] for f in reid_features_dict[track_key] if
+                                       isinstance(f[0], np.ndarray) and f[
+                                           0].size > 0])  # Extract features only if they are valid numpy arrays
             confidences = np.array([f[2] for f in reid_features_dict[track_key]])  # Extract confidence scores only
-            
+
             # Find the feature with the highest confidence score
             best_feature_idx = np.argmax(confidences)
             best_feature = track_features[best_feature_idx]
-            
+
             if class_id == 0:  # Customer
                 label_list = customer_labels
                 feature_list = customer_features
@@ -153,12 +164,13 @@ def map_track_id_to_global_id(reid_features_dict, customer_features, customer_la
                 label_list = associate_labels
                 feature_list = associate_features
                 offset = global_associate_id_offset
-            
+
             # Normalize the best feature
             best_feature = normalize(best_feature.reshape(1, -1), axis=1)
-            
+
             # Compute similarities and find the best match
-            similarities = np.array([1 - cosine(best_feature, feature_list[i].reshape(1, -1)) for i in range(len(label_list))])
+            similarities = np.array(
+                [1 - cosine(best_feature, feature_list[i].reshape(1, -1)) for i in range(len(label_list))])
             best_match = np.argmax(similarities)
             track_to_global_id[track] = label_list[best_match] + offset
 
