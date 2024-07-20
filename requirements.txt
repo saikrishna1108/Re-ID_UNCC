@@ -1,0 +1,9 @@
+opencv-python-headless
+torch
+torchvision
+Pillow
+h5py
+ultralytics
+loguru
+scikit-learn
+scipy
