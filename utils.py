@@ -88,6 +88,10 @@ def separate_and_cluster_features(reid_features_dict, distance_threshold, confid
     customer_features = [f for f in customer_features if isinstance(f, np.ndarray) and f.size > 0]
     associate_features = [f for f in associate_features if isinstance(f, np.ndarray) and f.size > 0]
 
+    # Add logging to check the contents
+    print(f"Number of customer features: {len(customer_features)}")
+    print(f"Number of associate features: {len(associate_features)}")
+
     # Normalize the features
     if len(customer_features) > 0:
         customer_features = np.array(customer_features)
