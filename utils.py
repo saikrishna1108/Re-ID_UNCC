@@ -92,12 +92,14 @@ def separate_and_cluster_features(reid_features_dict, distance_threshold, confid
     print(f"Number of customer features: {len(customer_features)}")
     print(f"Number of associate features: {len(associate_features)}")
 
+    # Ensure customer_features and associate_features are numpy arrays
+    customer_features = np.array(customer_features)
+    associate_features = np.array(associate_features)
+
     # Normalize the features
     if len(customer_features) > 0:
-        customer_features = np.array(customer_features)
         customer_features = normalize(customer_features, axis=1)
     if len(associate_features) > 0:
-        associate_features = np.array(associate_features)
         associate_features = normalize(associate_features, axis=1)
 
     # Filter features based on confidence score and overlap

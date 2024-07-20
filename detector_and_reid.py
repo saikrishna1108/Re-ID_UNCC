@@ -63,6 +63,7 @@ class DetectorAndReID:
                         img_crop = self.transform(img_crop.convert('RGB')).unsqueeze(0)
                         features = [extractor(img_crop).cpu().detach().numpy()[0] for extractor in self.extractors]
                         feature = np.concatenate(features, axis=0)
-                        detection_emb.append((feature, track_id, class_id, confidence, (x1, y1, x2, y2), ious[idx]))
-                        track_feature_count[track_id] += 1
+                        if isinstance(feature, np.ndarray) and feature.size > 0:
+                            detection_emb.append((feature, track_id, class_id, confidence, (x1, y1, x2, y2), ious[idx]))
+                            track_feature_count[track_id] += 1
         return detection_emb, track_feature_count
