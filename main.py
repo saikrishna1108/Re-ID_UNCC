@@ -38,7 +38,8 @@ def process_video(video_path, detector_reid, fps, camera_id, scene_id, root_path
                     break
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 detections, class_ids, confidences, track_ids, features, track_feature_count = detector_reid.detect_and_extract_features(
-                    frame_rgb, track_feature_count)
+                    frame_rgb, track_feature_count, confidence_threshold=args.confidence_threshold,
+                    iou_threshold=args.iou_threshold)
 
                 # Save all detections to the .txt file
                 for detection, track_id, class_id, score in zip(detections, track_ids, class_ids, confidences):
@@ -46,11 +47,11 @@ def process_video(video_path, detector_reid, fps, camera_id, scene_id, root_path
                     det_file.write(f'{frame_count},{track_id},{x1},{y1},{x2},{y2},{score},{camera_id},{class_id}\n')
 
                 # Save only non-empty features to the .h5 file
-                for feature, track_id, class_id, confidence, bbox, ious in features:
+                for feature, track_id, class_id, confidence, bbox, overlap in features:
                     if isinstance(feature, np.ndarray) and feature.size > 0:  # Check if feature is not empty
                         if f"track_{camera_id}_{track_id}" not in hf:
                             hf.create_group(f"track_{camera_id}_{track_id}")
-                        data = np.hstack((feature, [class_id, confidence], bbox, ious))
+                        data = np.hstack((feature, [class_id, confidence], bbox, overlap))
                         hf.create_dataset(
                             name=f"track_{camera_id}_{track_id}/idx_{len(hf[f'track_{camera_id}_{track_id}'])}",
                             data=data)
