@@ -87,7 +87,7 @@ def map_track_id_to_global_id(reid_features_dict, customer_features, customer_la
             confidences = np.array([f[2] for f in reid_features_dict[track_key]])  # Extract confidence scores only
 
             best_feature_idx = np.argmax(confidences)
-            best_feature = track_features[best_feature_idx].reshape(1, -1)
+            best_feature = track_features[best_feature_idx]
 
             if class_id == 0:  # Customer
                 label_list = customer_labels
@@ -99,8 +99,7 @@ def map_track_id_to_global_id(reid_features_dict, customer_features, customer_la
                 offset = global_associate_id_offset
 
             # Compute similarities and find the best match
-            similarities = np.array(
-                [1 - cosine(best_feature, feature_list[i].reshape(1, -1)) for i in range(len(label_list))])
+            similarities = np.array([1 - cosine(best_feature, feature_list[i]) for i in range(len(label_list))])
             best_match = np.argmax(similarities)
             track_to_global_id[track] = label_list[best_match] + offset
 
