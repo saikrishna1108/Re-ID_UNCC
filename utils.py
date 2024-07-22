@@ -7,24 +7,6 @@ from collections import Counter
 from scipy.optimize import linear_sum_assignment
 
 
-def iou(box1, box2):
-    x1_max, y1_max, x2_max, y2_max = box1
-    x1_min, y1_min, x2_min, y2_min = box2
-
-    xi1 = max(x1_max, x1_min)
-    yi1 = max(y1_max, y1_min)
-    xi2 = min(x2_max, x2_min)
-    yi2 = min(y2_max, y2_min)
-    inter_area = max(0, xi2 - xi1) * max(0, yi2 - yi1)
-
-    box1_area = (x2_max - x1_max) * (y2_max - y1_max)
-    box2_area = (x2_min - x1_min) * (y2_min - y1_min)
-    union_area = box1_area + box2_area - inter_area
-
-    iou = inter_area / union_area
-    return iou
-
-
 def load_tracking_data(file_path):
     data = []
     with open(file_path, 'r') as f:
@@ -88,13 +70,21 @@ def separate_and_cluster_features(reid_features_dict, distance_threshold, confid
     customer_features = [f for f in customer_features if isinstance(f, np.ndarray) and f.size > 0]
     associate_features = [f for f in associate_features if isinstance(f, np.ndarray) and f.size > 0]
 
-    # Add logging to check the contents
-    print(f"Number of customer features: {len(customer_features)}")
-    print(f"Number of associate features: {len(associate_features)}")
+    # Check dimensions of features
+    if customer_features:
+        feature_dims = set(f.shape for f in customer_features)
+        if len(feature_dims) > 1:
+            raise ValueError(f"Customer features have inconsistent dimensions: {feature_dims}")
+    if associate_features:
+        feature_dims = set(f.shape for f in associate_features)
+        if len(feature_dims) > 1:
+            raise ValueError(f"Associate features have inconsistent dimensions: {feature_dims}")
 
-    # Ensure customer_features and associate_features are numpy arrays
-    customer_features = np.array(customer_features)
-    associate_features = np.array(associate_features)
+    # Convert lists to numpy arrays if they are not empty
+    if customer_features:
+        customer_features = np.array(customer_features)
+    if associate_features:
+        associate_features = np.array(associate_features)
 
     # Normalize the features
     if len(customer_features) > 0:

@@ -1,5 +1,6 @@
 import os
 import argparse
+import cv2
 from detector_and_reid import DetectorAndReID
 from utils import load_tracking_data, load_reid_features, separate_and_cluster_features, map_track_id_to_global_id
 
